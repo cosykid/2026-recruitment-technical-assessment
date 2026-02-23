@@ -36,17 +36,24 @@ app.post("/parse", (req:Request, res:Response) => {
   if (parsed_string == null) {
     res.status(400).send("this string is cooked");
     return;
-  } 
+  }
   res.json({ msg: parsed_string });
   return;
-  
+
 });
 
 // [TASK 1] ====================================================================
-// Takes in a recipeName and returns it in a form that 
+// Takes in a recipeName and returns it in a form that
 const parse_handwriting = (recipeName: string): string | null => {
-  // TODO: implement me
-  return recipeName
+  let result = recipeName.replace(/[-_]/g, " ");
+  result = result.replace(/[^a-zA-Z ]/g, "");
+  result = result.replace(/\s+/g, " ").trim();
+  if (result.length === 0) return null;
+  result = result
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+  return result;
 }
 
 // [TASK 2] ====================================================================

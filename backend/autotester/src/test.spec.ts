@@ -22,6 +22,67 @@ describe("Task 1", () => {
       const response = await getTask1("");
       expect(response.status).toBe(400);
     });
+
+    // Extra tests
+    it("replaces underscores with spaces", async () => {
+      const response = await getTask1("Skibidi___Spaghetti");
+      expect(response.body).toStrictEqual({ msg: "Skibidi Spaghetti" });
+    });
+
+    it("replaces hyphens with spaces", async () => {
+      const response = await getTask1("Skibidi---Spaghetti");
+      expect(response.body).toStrictEqual({ msg: "Skibidi Spaghetti" });
+    });
+
+    it("collapses multiple spaces", async () => {
+      const response = await getTask1("Skibidi   spaghetti");
+      expect(response.body).toStrictEqual({ msg: "Skibidi Spaghetti" });
+    });
+
+    it("trims trailing whitespace", async () => {
+      const response = await getTask1("Skibidi spaghetti    ");
+      expect(response.body).toStrictEqual({ msg: "Skibidi Spaghetti" });
+    });
+
+    it("capitalises first letter of each word, lowercases rest", async () => {
+      const response = await getTask1("alpHa alFRedo");
+      expect(response.body).toStrictEqual({ msg: "Alpha Alfredo" });
+    });
+
+    it("single word is title cased", async () => {
+      const response = await getTask1("meatball");
+      expect(response.body).toStrictEqual({ msg: "Meatball" });
+    });
+
+    it("removes special characters other than hyphen/underscore", async () => {
+      const response = await getTask1("p@st@!");
+      expect(response.body).toStrictEqual({ msg: "Pst" });
+    });
+
+    it("string with only special characters returns 400", async () => {
+      const response = await getTask1("@@@!!!");
+      expect(response.status).toBe(400);
+    });
+
+    it("string with only hyphens/underscores returns 400", async () => {
+      const response = await getTask1("---___");
+      expect(response.status).toBe(400);
+    });
+
+    it("mixed hyphens, underscores, and spaces collapse to single space", async () => {
+      const response = await getTask1("Skibidi_-_Spaghetti");
+      expect(response.body).toStrictEqual({ msg: "Skibidi Spaghetti" });
+    });
+
+    it("already valid string is returned unchanged", async () => {
+      const response = await getTask1("Alpha Alfredo");
+      expect(response.body).toStrictEqual({ msg: "Alpha Alfredo" });
+    });
+
+    it("numbers and symbols are stripped", async () => {
+      const response = await getTask1("Riz@z RISO00tto!");
+      expect(response.body).toStrictEqual({ msg: "Rizz Risotto" });
+    });
   });
 });
 
