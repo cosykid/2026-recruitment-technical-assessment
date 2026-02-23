@@ -154,6 +154,96 @@ describe("Task 2", () => {
       });
       expect(resp3.status).toBe(400);
     });
+
+    // Extra tests
+    it("ingredient with cookTime 0 is valid", async () => {
+      const resp = await putTask2({
+        type: "ingredient",
+        name: "Flour",
+        cookTime: 0,
+      });
+      expect(resp.status).toBe(200);
+      expect(resp.body).toStrictEqual({});
+    });
+
+    it("recipe with multiple requiredItems is valid", async () => {
+      const resp = await putTask2({
+        type: "recipe",
+        name: "Omelette",
+        requiredItems: [
+          { name: "Egg", quantity: 2 },
+          { name: "Lettuce", quantity: 1 },
+        ],
+      });
+      expect(resp.status).toBe(200);
+      expect(resp.body).toStrictEqual({});
+    });
+
+    it("recipe with duplicate requiredItem names returns 400", async () => {
+      const resp = await putTask2({
+        type: "recipe",
+        name: "BadRecipe",
+        requiredItems: [
+          { name: "Egg", quantity: 1 },
+          { name: "Egg", quantity: 2 },
+        ],
+      });
+      expect(resp.status).toBe(400);
+    });
+
+    it("ingredient name must be unique across ingredients and recipes", async () => {
+      // Add an ingredient
+      const resp1 = await putTask2({
+        type: "ingredient",
+        name: "Tomato",
+        cookTime: 2,
+      });
+      expect(resp1.status).toBe(200);
+
+      // Try to add a recipe with the same name
+      const resp2 = await putTask2({
+        type: "recipe",
+        name: "Tomato",
+        requiredItems: [{ name: "Egg", quantity: 1 }],
+      });
+      expect(resp2.status).toBe(400);
+    });
+
+    it("recipe name must be unique across ingredients and recipes", async () => {
+      // Add a recipe
+      const resp1 = await putTask2({
+        type: "recipe",
+        name: "Salad",
+        requiredItems: [{ name: "Lettuce", quantity: 1 }],
+      });
+      expect(resp1.status).toBe(200);
+
+      // Try to add an ingredient with the same name
+      const resp2 = await putTask2({
+        type: "ingredient",
+        name: "Salad",
+        cookTime: 5,
+      });
+      expect(resp2.status).toBe(400);
+    });
+
+    it("invalid type returns 400", async () => {
+      const resp = await putTask2({
+        type: "meal",
+        name: "Pizza",
+        cookTime: 10,
+      });
+      expect(resp.status).toBe(400);
+    });
+
+    it("ingredient with negative cookTime returns 400", async () => {
+      const resp = await putTask2({
+        type: "ingredient",
+        name: "NegativeCook",
+        cookTime: -5,
+      });
+      expect(resp.status).toBe(400);
+    });
   });
 });
 
