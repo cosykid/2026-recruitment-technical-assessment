@@ -1,0 +1,12 @@
+The frontend is a Next.js app located in the `app/` subdirectory.
+
+To run it:
+
+  cd app
+  npm install
+  npm run dev
+
+Then open http://localhost:3000 in your browser.
+
+Note: `npm run start` requires a production build first. Use `npm run dev` for development,
+or run `npm run build && npm run start` for the production server.
