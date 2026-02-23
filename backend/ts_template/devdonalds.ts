@@ -92,10 +92,48 @@ app.post("/entry", (req:Request, res:Response) => {
 
 // [TASK 3] ====================================================================
 // Endpoint that returns a summary of a recipe that corresponds to a query name
-app.get("/summary", (req:Request, res:Request) => {
-  // TODO: implement me
-  res.status(500).send("not yet implemented!")
+app.get("/summary", (req:Request, res:Response) => {
+  const name = req.query.name as string;
 
+  const entry = cookbook.find((e) => e.name === name);
+
+  if (!entry || entry.type !== "recipe") {
+    res.status(400).send("Recipe not found");
+    return;
+  }
+
+  const ingredientMap = new Map<string, number>();
+  let totalCookTime = 0;
+
+  const resolve = (itemName: string, multiplier: number): boolean => {
+    const found = cookbook.find((e) => e.name === itemName);
+    if (!found) return false;
+    if (found.type === "ingredient") {
+      const ing = found as ingredient;
+      totalCookTime += ing.cookTime * multiplier;
+      ingredientMap.set(itemName, (ingredientMap.get(itemName) ?? 0) + multiplier);
+    } else {
+      const rec = found as recipe;
+      for (const item of rec.requiredItems) {
+        if (!resolve(item.name, item.quantity * multiplier)) return false;
+      }
+    }
+    return true;
+  };
+
+  const rec = entry as recipe;
+  for (const item of rec.requiredItems) {
+    if (!resolve(item.name, item.quantity)) {
+      res.status(400).send("Missing ingredient or recipe in cookbook");
+      return;
+    }
+  }
+
+  const ingredients: requiredItem[] = Array.from(ingredientMap.entries()).map(
+    ([n, q]) => ({ name: n, quantity: q })
+  );
+
+  res.status(200).json({ name, cookTime: totalCookTime, ingredients });
 });
 
 // =============================================================================

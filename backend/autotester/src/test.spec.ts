@@ -308,5 +308,143 @@ describe("Task 3", () => {
       const resp3 = await getTask3("Skibidi");
       expect(resp3.status).toBe(200);
     });
+
+    // Extra tests: full Skibidi Spaghetti example from README
+    // Uses uniquely-prefixed names to avoid collisions with entries added in earlier tests
+    it("Skibidi Spaghetti - full recursive summary", async () => {
+      await postEntry({ type: "ingredient", name: "SS_Beef", cookTime: 5 });
+      await postEntry({ type: "ingredient", name: "SS_Egg", cookTime: 3 });
+      await postEntry({ type: "ingredient", name: "SS_Flour", cookTime: 0 });
+      await postEntry({ type: "ingredient", name: "SS_Tomato", cookTime: 2 });
+      await postEntry({
+        type: "recipe",
+        name: "SS_Meatball",
+        requiredItems: [
+          { name: "SS_Beef", quantity: 2 },
+          { name: "SS_Egg", quantity: 1 },
+        ],
+      });
+      await postEntry({
+        type: "recipe",
+        name: "SS_Pasta",
+        requiredItems: [
+          { name: "SS_Flour", quantity: 3 },
+          { name: "SS_Egg", quantity: 1 },
+        ],
+      });
+      await postEntry({
+        type: "recipe",
+        name: "Skibidi Spaghetti",
+        requiredItems: [
+          { name: "SS_Meatball", quantity: 3 },
+          { name: "SS_Pasta", quantity: 1 },
+          { name: "SS_Tomato", quantity: 2 },
+        ],
+      });
+
+      const resp = await getTask3("Skibidi Spaghetti");
+      expect(resp.status).toBe(200);
+      expect(resp.body.name).toBe("Skibidi Spaghetti");
+      // SS_Beef: 5*2*3=30, SS_Egg: 3*1*3 + 3*1*1=12, SS_Flour: 0*3*1=0, SS_Tomato: 2*2=4 => total 46
+      expect(resp.body.cookTime).toBe(46);
+
+      // Verify ingredients (order may vary)
+      const ingredients = resp.body.ingredients;
+      expect(ingredients).toHaveLength(4);
+
+      const findIngredient = (name) =>
+        ingredients.find((i) => i.name === name);
+
+      expect(findIngredient("SS_Beef")).toEqual({ name: "SS_Beef", quantity: 6 });
+      expect(findIngredient("SS_Egg")).toEqual({ name: "SS_Egg", quantity: 4 });
+      expect(findIngredient("SS_Flour")).toEqual({ name: "SS_Flour", quantity: 3 });
+      expect(findIngredient("SS_Tomato")).toEqual({ name: "SS_Tomato", quantity: 2 });
+    });
+
+    it("simple single-ingredient recipe summary", async () => {
+      await postEntry({ type: "ingredient", name: "Sugar", cookTime: 1 });
+      await postEntry({
+        type: "recipe",
+        name: "SweetDish",
+        requiredItems: [{ name: "Sugar", quantity: 4 }],
+      });
+
+      const resp = await getTask3("SweetDish");
+      expect(resp.status).toBe(200);
+      expect(resp.body.name).toBe("SweetDish");
+      expect(resp.body.cookTime).toBe(4);
+      expect(resp.body.ingredients).toEqual([{ name: "Sugar", quantity: 4 }]);
+    });
+
+    it("returns 400 for ingredient name instead of recipe", async () => {
+      await postEntry({ type: "ingredient", name: "Salt", cookTime: 0 });
+      const resp = await getTask3("Salt");
+      expect(resp.status).toBe(400);
+    });
+
+    it("returns 400 when nested recipe references a missing item", async () => {
+      await postEntry({ type: "ingredient", name: "Water", cookTime: 5 });
+      await postEntry({
+        type: "recipe",
+        name: "InnerRecipe",
+        requiredItems: [{ name: "Ghost Ingredient", quantity: 1 }],
+      });
+      await postEntry({
+        type: "recipe",
+        name: "OuterRecipe",
+        requiredItems: [
+          { name: "Water", quantity: 1 },
+          { name: "InnerRecipe", quantity: 1 },
+        ],
+      });
+
+      const resp = await getTask3("OuterRecipe");
+      expect(resp.status).toBe(400);
+    });
+
+    it("cookTime is sum of all ingredient cookTimes multiplied by quantities", async () => {
+      await postEntry({ type: "ingredient", name: "OilA", cookTime: 3 });
+      await postEntry({ type: "ingredient", name: "OilB", cookTime: 7 });
+      await postEntry({
+        type: "recipe",
+        name: "OilBlend",
+        requiredItems: [
+          { name: "OilA", quantity: 2 },
+          { name: "OilB", quantity: 3 },
+        ],
+      });
+
+      const resp = await getTask3("OilBlend");
+      expect(resp.status).toBe(200);
+      // 3*2 + 7*3 = 6 + 21 = 27
+      expect(resp.body.cookTime).toBe(27);
+    });
+
+    it("nested recipes accumulate ingredient quantities correctly", async () => {
+      // Base1 appears in both SubRecipe and TopRecipe
+      await postEntry({ type: "ingredient", name: "Base1", cookTime: 10 });
+      await postEntry({
+        type: "recipe",
+        name: "SubRecipe",
+        requiredItems: [{ name: "Base1", quantity: 1 }],
+      });
+      await postEntry({
+        type: "recipe",
+        name: "TopRecipe",
+        requiredItems: [
+          { name: "SubRecipe", quantity: 2 },
+          { name: "Base1", quantity: 3 },
+        ],
+      });
+
+      const resp = await getTask3("TopRecipe");
+      expect(resp.status).toBe(200);
+      // SubRecipe x2 contributes Base1 x2, plus direct Base1 x3 => Base1 x5
+      // cookTime = 10*5 = 50
+      expect(resp.body.cookTime).toBe(50);
+      const ingredients = resp.body.ingredients;
+      expect(ingredients).toHaveLength(1);
+      expect(ingredients[0]).toEqual({ name: "Base1", quantity: 5 });
+    });
   });
 });
